@@ -1,6 +1,7 @@
 import express from "express";
 import {
-    getBusinessProfile
+    getBusinessProfile,
+    updateBusinessProfile
 } from "../controllers/businessController.js";
 
 import { authMiddleware } from "../../middleware/authMiddleware.js";
@@ -13,6 +14,12 @@ router.get(
     "/profile",
     authMiddleware,
     getBusinessProfile
+);
+
+router.put(
+    "/profile",
+    authMiddleware,
+    updateBusinessProfile
 );
 
 
