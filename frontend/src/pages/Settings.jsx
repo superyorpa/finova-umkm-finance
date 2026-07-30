@@ -17,7 +17,8 @@ function Settings() {
   
   const [business, setBusiness] = useState({
     name: "",
-    description: ""
+    description: "",
+    monthly_target: 10000000
   });
   
   const [preferences, setPreferences] = useState({
@@ -44,9 +45,10 @@ function Settings() {
         setLoading(true);
         const res = await api.get("/business/profile");
         if (res.data) {
-          setBusiness({
+            setBusiness({
             name: res.data.name || "",
-            description: res.data.description || ""
+            description: res.data.description || "",
+            monthly_target: res.data.monthly_target || 10000000
           });
         }
       } catch (err) {
@@ -71,7 +73,8 @@ function Settings() {
     try {
       await api.put("/business/profile", {
         name: business.name,
-        description: business.description
+        description: business.description,
+        monthly_target: Number(business.monthly_target)
       });
       showNotification("Business profile updated successfully");
     } catch (err) {
@@ -146,6 +149,18 @@ function Settings() {
                   onChange={(e) => setBusiness({...business, name: e.target.value})}
                   className="w-full border border-gray-200 rounded-xl py-2.5 px-4 outline-none focus:border-[#047857] transition"
                   placeholder="e.g. Toko Kopi Berkah"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold mb-2">Monthly Income Target (Rp)</label>
+                <input
+                  type="number"
+                  required
+                  value={business.monthly_target}
+                  onChange={(e) => setBusiness({...business, monthly_target: e.target.value})}
+                  className="w-full border border-gray-200 rounded-xl py-2.5 px-4 outline-none focus:border-[#047857] transition"
+                  placeholder="e.g. 10000000"
                 />
               </div>
 

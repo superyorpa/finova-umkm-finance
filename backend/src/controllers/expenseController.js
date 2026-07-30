@@ -50,7 +50,7 @@ export const getExpenses = async (req, res) => {
 export const createExpense = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { category, description, amount, payment_method } = req.body;
+    const { category, description, amount, payment_method, date } = req.body;
 
     if (!category) {
       return res.status(400).json({ message: "Category required" });
@@ -73,7 +73,7 @@ export const createExpense = async (req, res) => {
       return res.status(400).json({ message: businessError.message });
     }
 
-    const today = new Date().toISOString().split("T")[0];
+    const expenseDate = date || new Date().toISOString().split("T")[0];
     const fullDescription = description ? `${description} [Payment: ${payment_method}]` : `[Payment: ${payment_method}]`;
 
     const { data, error } = await supabase
@@ -83,7 +83,7 @@ export const createExpense = async (req, res) => {
         category,
         amount: Number(amount),
         description: fullDescription,
-        expense_date: today
+        expense_date: expenseDate
       })
       .select()
       .single();
@@ -106,7 +106,7 @@ export const updateExpense = async (req, res) => {
   try {
     const userId = req.user.id;
     const { id } = req.params;
-    const { category, description, amount, payment_method } = req.body;
+    const { category, description, amount, payment_method, date } = req.body;
 
     if (!category) {
       return res.status(400).json({ message: "Category required" });
@@ -136,7 +136,8 @@ export const updateExpense = async (req, res) => {
       .update({
         category,
         amount: Number(amount),
-        description: fullDescription
+        description: fullDescription,
+        expense_date: date
       })
       .eq("id", id)
       .eq("business_id", business.id)

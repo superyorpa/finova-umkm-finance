@@ -53,10 +53,10 @@ export const getTransactions = async (req, res) => {
 export const createTransaction = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { product_id, quantity, payment_method } = req.body;
+    const { items, payment_method, date } = req.body;
 
-    if (!product_id || !quantity || quantity <= 0) {
-      return res.status(400).json({ message: "Product and valid quantity are required" });
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ message: "Items are required" });
     }
 
     // Get business_id
@@ -70,24 +70,31 @@ export const createTransaction = async (req, res) => {
       return res.status(400).json({ message: businessError.message });
     }
 
-    // Get product and check stock
-    const { data: product, error: productError } = await supabase
-      .from("products")
-      .select("*")
-      .eq("id", product_id)
-      .eq("business_id", business.id)
-      .single();
+    let total_price = 0;
+    const validatedItems = [];
 
-    if (productError || !product) {
-      return res.status(404).json({ message: "Product not found" });
+    // Check stock for all items
+    for (const item of items) {
+        const { data: product, error: productError } = await supabase
+            .from("products")
+            .select("*")
+            .eq("id", item.product_id)
+            .eq("business_id", business.id)
+            .single();
+
+        if (productError || !product) {
+            return res.status(404).json({ message: `Product ${item.product_id} not found` });
+        }
+
+        if (product.stock < item.quantity) {
+            return res.status(400).json({ message: `Insufficient stock for ${product.name}` });
+        }
+        
+        total_price += Number(product.price) * Number(item.quantity);
+        validatedItems.push({ ...item, product, price: product.price });
     }
 
-    if (product.stock < quantity) {
-      return res.status(400).json({ message: "Stock cannot exceed available stock" });
-    }
-
-    const total_price = Number(product.price) * Number(quantity);
-    const today = new Date().toISOString().split("T")[0];
+    const transactionDate = date || new Date().toISOString().split("T")[0];
 
     // Insert transaction
     const { data: transaction, error: txError } = await supabase
@@ -96,7 +103,7 @@ export const createTransaction = async (req, res) => {
         business_id: business.id,
         total: total_price,
         payment_method: payment_method || "Cash",
-        transaction_date: today
+        transaction_date: transactionDate
       })
       .select()
       .single();
@@ -106,29 +113,21 @@ export const createTransaction = async (req, res) => {
     }
 
     // Insert transaction details
-    const { error: detailError } = await supabase
-      .from("transaction_details")
-      .insert({
-        transaction_id: transaction.id,
-        product_id: product.id,
-        quantity: Number(quantity),
-        price: Number(product.price)
-      });
+    for (const item of validatedItems) {
+        await supabase
+          .from("transaction_details")
+          .insert({
+            transaction_id: transaction.id,
+            product_id: item.product_id,
+            quantity: Number(item.quantity),
+            price: Number(item.price)
+          });
 
-    if (detailError) {
-      // rollback or handle error
-      return res.status(400).json({ message: detailError.message });
-    }
-
-    // Reduce product stock
-    const newStock = product.stock - Number(quantity);
-    const { error: stockError } = await supabase
-      .from("products")
-      .update({ stock: newStock })
-      .eq("id", product.id);
-
-    if (stockError) {
-      return res.status(400).json({ message: stockError.message });
+        // Reduce product stock
+        await supabase
+          .from("products")
+          .update({ stock: item.product.stock - Number(item.quantity) })
+          .eq("id", item.product_id);
     }
 
     // Fetch full created transaction with details
@@ -166,7 +165,7 @@ export const updateTransaction = async (req, res) => {
   try {
     const userId = req.user.id;
     const { id } = req.params;
-    const { payment_method } = req.body;
+    const { payment_method, date } = req.body;
 
     // Get business_id
     const { data: business, error: businessError } = await supabase
@@ -181,7 +180,7 @@ export const updateTransaction = async (req, res) => {
 
     const { data, error } = await supabase
       .from("transactions")
-      .update({ payment_method })
+      .update({ payment_method, transaction_date: date })
       .eq("id", id)
       .eq("business_id", business.id)
       .select()

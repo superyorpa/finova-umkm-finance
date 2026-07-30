@@ -29,6 +29,8 @@ function Products() {
   });
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const [notification, setNotification] = useState(null);
 
   const fetchProducts = async () => {
@@ -129,6 +131,11 @@ function Products() {
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentProducts = filteredProducts.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+
   const getStockStatus = (stock) => {
     if (stock === 0) return { label: "Out of Stock", color: "text-red-500", dot: "bg-red-500" };
     if (stock <= 10) return { label: "Low Stock", color: "text-orange-500", dot: "bg-orange-500" };
@@ -148,7 +155,7 @@ function Products() {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-[#161b19]">Product Management</h1>
-          <p className="text-gray-500 mt-1">Manage your business inventory and pricing</p>
+          <p className="text-gray-500 mt-1">Manage your products, inventory, and pricing</p>
         </div>
       </div>
 
@@ -166,8 +173,11 @@ function Products() {
             type="text"
             placeholder="Search products..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full border border-gray-200 rounded-xl py-2.5 pl-10 pr-4 outline-none focus:border-[#047857] transition"
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="w-full border border-gray-300 rounded-xl py-2.5 pl-10 pr-4 outline-none focus:border-[#047857] transition"
           />
         </div>
         <button
@@ -211,7 +221,7 @@ function Products() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#dce5df]">
-                {filteredProducts.map((product) => {
+                {currentProducts.map((product) => {
                   const status = getStockStatus(product.stock);
                   return (
                   <tr key={product.id} className="hover:bg-gray-50 transition">
@@ -253,6 +263,26 @@ function Products() {
                 )})}
               </tbody>
             </table>
+
+            {filteredProducts.length > itemsPerPage && (
+              <div className="px-6 py-4 border-t border-[#dce5df] flex justify-between items-center bg-gray-50">
+                <button
+                  onClick={() => setCurrentPage(Math.max(currentPage - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 border border-gray-300 rounded-xl font-semibold bg-white disabled:opacity-50 hover:bg-gray-50 transition text-sm"
+                >
+                  Previous
+                </button>
+                <span className="text-sm font-semibold">Page {currentPage} of {totalPages}</span>
+                <button
+                  onClick={() => setCurrentPage(Math.min(currentPage + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 border border-gray-300 rounded-xl font-semibold bg-white disabled:opacity-50 hover:bg-gray-50 transition text-sm"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

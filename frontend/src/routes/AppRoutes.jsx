@@ -6,6 +6,8 @@ import Dashboard from "../pages/Dashboard";
 import Products from "../pages/Products";
 import Transactions from "../pages/Transactions";
 import Expenses from "../pages/Expenses";
+import Reports from "../pages/Reports";
+import Insights from "../pages/Insights";
 import Settings from "../pages/Settings";
 import Help from "../pages/Help";
 import ProtectedRoute from "./ProtectedRoute";
@@ -65,6 +67,24 @@ function AppRoutes(){
                     element={
                         <ProtectedRoute>
                             <Expenses />
+                        </ProtectedRoute>
+                    }
+                />
+
+                 <Route
+                    path="/reports"
+                    element={
+                        <ProtectedRoute>
+                            <Reports />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/insights"
+                    element={
+                        <ProtectedRoute>
+                            <Insights />
                         </ProtectedRoute>
                     }
                 />

@@ -1,7 +1,7 @@
-import { Search, Bell } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { Menu } from "lucide-react";
 
-function Navbar() {
+function Navbar({ toggleSidebar }) {
   const { user } = useAuth();
 
   const displayName =
@@ -9,78 +9,51 @@ function Navbar() {
   const initial = displayName.charAt(0).toUpperCase();
 
   return (
-<header
-className="
-h-20
-bg-white
-border-b
-border-[#dce5df]
-flex
-items-center
-justify-between
-px-8
-sticky
-top-0
-z-10
-"
->
-      {/* Search */}
-
-      <div
-        className="
-flex
-items-center
-gap-3
-bg-[#f5f7f6]
-border
-border-gray-200
-rounded-full
-px-5
-py-3
-w-96
-"
-      >
-        <Search size={20} className="text-gray-400" />
-
-        <input
-          placeholder="
-Search transactions, products...
-"
-          className="
-bg-transparent
-outline-none
-text-sm
-w-full
-"
-        />
-      </div>
+    <header
+      className="
+        h-20
+        bg-white
+        border-b
+        border-[#dce5df]
+        flex
+        items-center
+        justify-between
+        px-4
+        md:px-8
+        sticky
+        top-0
+        z-10
+      "
+    >
+      <button onClick={toggleSidebar} className="md:hidden p-2 text-gray-600">
+        <Menu size={24} />
+      </button>
 
       {/* Right */}
-
       <div
         className="
-flex
-items-center
-gap-6
-"
+        flex
+        items-center
+        gap-3
+        md:gap-6
+        ml-auto
+        "
       >
-        <Bell size={22} className="text-gray-600" />
-
-        <div className="text-right">
+        <div className="hidden md:block text-right">
           <p
             className="
-font-semibold
-text-sm
-"
+            font-semibold
+            text-sm
+            "
           >
             {displayName}
           </p>
 
           <p
             className="
-text-xs
-text-gray-500
-"
+            text-xs
+            text-gray-500
+            "
           >
             {user?.email}
           </p>
@@ -88,16 +61,17 @@ text-gray-500
 
         <div
           className="
-w-11
-h-11
-rounded-full
-bg-[#047857]
-text-white
-flex
-items-center
-justify-center
-font-bold
-"
+            w-11
+            h-11
+            rounded-full
+            bg-[#047857]
+            text-white
+            flex
+            items-center
+            justify-center
+            font-bold
+            shrink-0
+          "
         >
           {initial}
         </div>

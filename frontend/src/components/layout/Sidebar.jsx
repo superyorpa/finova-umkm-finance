@@ -41,14 +41,14 @@ const menu = [
     icon: FileText,
   },
   {
-    name: "AI Insight",
-    path: "/insight",
+    name: "AI Insights",
+    path: "/insights",
     icon: Sparkles,
   },
 ];
 
 
-function Sidebar(){
+function Sidebar({ isOpen, setIsSidebarOpen }){
 
 const { logout } = useAuth();
 const navigate = useNavigate();
@@ -70,7 +70,7 @@ const handleLogout = async () => {
 return (
 
 <aside
-className="
+className={`
 w-64
 h-screen
 fixed
@@ -84,7 +84,12 @@ flex-col
 justify-between
 p-5
 overflow-y-auto
-"
+transition-transform
+duration-300
+z-50
+${isOpen ? 'translate-x-0' : '-translate-x-full'}
+md:translate-x-0
+`}
 >
 
 
@@ -159,6 +164,7 @@ return (
 <NavLink
 key={item.name}
 to={item.path}
+onClick={() => setIsSidebarOpen(false)}
 
 className={({isActive})=>
 
@@ -224,6 +230,7 @@ isActive
 
 <NavLink
 to="/settings"
+onClick={() => setIsSidebarOpen(false)}
 className={({isActive})=>
   `
   flex
@@ -249,6 +256,7 @@ Settings
 
 <NavLink
 to="/help"
+onClick={() => setIsSidebarOpen(false)}
 className={({isActive})=>
   `
   flex

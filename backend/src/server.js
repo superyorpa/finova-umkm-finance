@@ -8,6 +8,8 @@ import dashboardRoutes from "./routes/dashboardRoutes.js"
 import productRoutes from "./routes/productRoutes.js"
 import transactionRoutes from "./routes/transactionRoutes.js"
 import expenseRoutes from "./routes/expenseRoutes.js"
+import reportRoutes from "./routes/reportRoutes.js"
+import insightRoutes from "./routes/insightRoutes.js"
 
 dotenv.config();
 
@@ -56,6 +58,17 @@ app.use(
     "/api/expenses",
     expenseRoutes
 );
+
+app.use(
+    "/api/reports",
+    reportRoutes
+);
+
+app.use(
+    "/api/insights",
+    insightRoutes
+);
+
 
 
 app.use("/api/auth", authRoutes);

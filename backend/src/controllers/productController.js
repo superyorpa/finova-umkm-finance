@@ -31,10 +31,14 @@ export const getProducts = async (req, res) => {
   }
 };
 
-export const createProduct = async (req, res) => {
+export   const createProduct = async (req, res) => {
   try {
     const userId = req.user.id;
     const { name, category, price, stock } = req.body;
+
+    if (stock < 0) {
+      return res.status(400).json({ message: "Stock cannot be negative" });
+    }
 
     // Get business_id
     const { data: business, error: businessError } = await supabase
@@ -69,11 +73,15 @@ export const createProduct = async (req, res) => {
   }
 };
 
-export const updateProduct = async (req, res) => {
+export   const updateProduct = async (req, res) => {
   try {
     const userId = req.user.id;
     const { id } = req.params;
     const { name, category, price, stock } = req.body;
+
+    if (stock < 0) {
+      return res.status(400).json({ message: "Stock cannot be negative" });
+    }
 
     // Get business_id
     const { data: business, error: businessError } = await supabase

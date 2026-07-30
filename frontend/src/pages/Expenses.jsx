@@ -9,7 +9,10 @@ import {
   Wallet, 
   X,
   AlertCircle,
-  Loader2
+  Loader2,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown
 } from "lucide-react";
 
 function Expenses() {
@@ -25,10 +28,17 @@ function Expenses() {
     category: "Operational",
     description: "",
     amount: "",
-    payment_method: "Cash"
+    payment_method: "Cash",
+    date: new Date().toISOString().split("T")[0]
   });
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState("Today");
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
+  const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const [notification, setNotification] = useState(null);
 
   const fetchExpenses = async () => {
@@ -60,7 +70,8 @@ function Expenses() {
         category: expense.category || "Operational",
         description: expense.description || "",
         amount: expense.amount || "",
-        payment_method: expense.payment_method || "Cash"
+        payment_method: expense.payment_method || "Cash",
+        date: expense.expense_date ? new Date(expense.expense_date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0]
       });
     } else {
       setEditingExpense(null);
@@ -68,7 +79,8 @@ function Expenses() {
         category: "Operational",
         description: "",
         amount: "",
-        payment_method: "Cash"
+        payment_method: "Cash",
+        date: new Date().toISOString().split("T")[0]
       });
     }
     setIsModalOpen(true);
@@ -139,10 +151,62 @@ function Expenses() {
     }
   };
 
-  const filteredExpenses = expenses.filter(e => 
-    e.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (e.description && e.description.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const handleSort = (key) => {
+    let direction = 'desc';
+    if (sortConfig.key === key && sortConfig.direction === 'desc') {
+      direction = 'asc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const filteredExpenses = expenses.filter(e => {
+    const matchesSearch = e.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (e.description && e.description.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    // Filtering logic
+    const expDate = new Date(e.expense_date || e.created_at);
+    expDate.setHours(0, 0, 0, 0);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    
+    let matchesFilter = true;
+    if (filterType === "Today") {
+      matchesFilter = expDate.getTime() === now.getTime();
+    } else if (filterType === "This Week") {
+      const day = now.getDay();
+      const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(diff);
+      startOfWeek.setHours(0, 0, 0, 0);
+      matchesFilter = expDate >= startOfWeek;
+    } else if (filterType === "This Month") {
+      matchesFilter = expDate.getMonth() === now.getMonth() && expDate.getFullYear() === now.getFullYear();
+    } else if (filterType === "Custom") {
+      if (customStartDate && customEndDate) {
+        const start = new Date(customStartDate);
+        const end = new Date(customEndDate);
+        matchesFilter = expDate >= start && expDate <= end;
+      }
+    }
+    
+    return matchesSearch && matchesFilter;
+  });
+
+  const sortedExpenses = [...filteredExpenses].sort((a, b) => {
+    if (sortConfig.key === 'date') {
+        const dateA = new Date(a.expense_date || a.created_at);
+        const dateB = new Date(b.expense_date || b.created_at);
+        return sortConfig.direction === 'asc' ? dateA - dateB : dateB - dateA;
+    } else if (sortConfig.key === 'amount') {
+        return sortConfig.direction === 'asc' ? a.amount - b.amount : b.amount - a.amount;
+    }
+    return 0;
+  });
+
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentExpenses = sortedExpenses.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(sortedExpenses.length / itemsPerPage);
 
   const formatRupiah = (amount) => {
     return new Intl.NumberFormat("id-ID", {
@@ -152,12 +216,17 @@ function Expenses() {
     }).format(amount);
   };
 
+  const SortIcon = ({ columnKey }) => {
+    if (sortConfig.key !== columnKey) return <ChevronsUpDown size={14} className="text-gray-400" />;
+    return sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />;
+  };
+
   return (
     <DashboardLayout>
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-[#161b19]">Expense Management</h1>
-          <p className="text-gray-500 mt-1">Track your business operational expenses</p>
+          <p className="text-gray-500 mt-1">Track your business expenses</p>
         </div>
       </div>
 
@@ -176,16 +245,40 @@ function Expenses() {
             placeholder="Search expenses by category or description..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full border border-gray-200 rounded-xl py-2.5 pl-10 pr-4 outline-none focus:border-[#047857] transition"
+            className="w-full border border-gray-300 rounded-xl py-2.5 pl-10 pr-4 outline-none focus:border-[#047857] transition"
           />
         </div>
-        <button
-          onClick={() => handleOpenModal()}
-          className="w-full md:w-auto flex items-center justify-center gap-2 bg-[#047857] hover:bg-[#056b4f] text-white px-5 py-2.5 rounded-xl font-semibold transition"
-        >
-          <Plus size={20} />
-          Add Expense
-        </button>
+        <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto items-center">
+          <div className="flex gap-2 w-full md:w-auto">
+            <select
+              value={filterType}
+              onChange={(e) => {
+                setFilterType(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-[#047857] transition bg-white w-full"
+            >
+              {["All", "Today", "This Week", "This Month", "Custom"].map(type => (
+                <option key={type} value={type}>{type}</option>
+              ))}
+            </select>
+            
+            {filterType === "Custom" && (
+              <div className="flex gap-2 items-center">
+                <input type="date" value={customStartDate} onChange={e => setCustomStartDate(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm" />
+                <span className="text-gray-500 text-sm">to</span>
+                <input type="date" value={customEndDate} onChange={e => setCustomEndDate(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm" />
+              </div>
+            )}
+          </div>
+          <button
+            onClick={() => handleOpenModal()}
+            className="w-full md:w-auto flex items-center justify-center gap-2 bg-[#047857] hover:bg-[#056b4f] text-white px-5 py-2.5 rounded-xl font-semibold transition"
+          >
+            <Plus size={20} />
+            Add Expense
+          </button>
+        </div>
       </div>
 
       <div className="bg-white border border-[#dce5df] rounded-2xl overflow-hidden shadow-sm">
@@ -214,15 +307,19 @@ function Expenses() {
                 <tr>
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Category</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Description</th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Amount</th>
+                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-[#047857] flex items-center gap-1" onClick={() => handleSort('amount')}>
+                    Amount <SortIcon columnKey="amount" />
+                  </th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Payment Method</th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-[#047857] flex items-center gap-1" onClick={() => handleSort('date')}>
+                    Date <SortIcon columnKey="date" />
+                  </th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#dce5df]">
-                {filteredExpenses.map((exp) => {
-                  const dateStr = new Date(exp.created_at || exp.expense_date).toLocaleDateString("id-ID", {
+                {currentExpenses.map((exp) => {
+                  const dateStr = new Date(exp.expense_date || exp.created_at).toLocaleDateString("id-ID", {
                     day: "numeric",
                     month: "short",
                     year: "numeric"
@@ -270,6 +367,26 @@ function Expenses() {
                 })}
               </tbody>
             </table>
+            
+            {filteredExpenses.length > itemsPerPage && (
+              <div className="px-6 py-4 border-t border-[#dce5df] flex justify-between items-center bg-gray-50">
+                <button
+                  onClick={() => setCurrentPage(Math.max(currentPage - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 border border-gray-300 rounded-xl font-semibold bg-white disabled:opacity-50 hover:bg-gray-50 transition text-sm"
+                >
+                  Previous
+                </button>
+                <span className="text-sm font-semibold">Page {currentPage} of {totalPages}</span>
+                <button
+                  onClick={() => setCurrentPage(Math.min(currentPage + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 border border-gray-300 rounded-xl font-semibold bg-white disabled:opacity-50 hover:bg-gray-50 transition text-sm"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -332,6 +449,17 @@ function Expenses() {
                   onChange={(e) => setFormData({...formData, amount: e.target.value})}
                   className="w-full border border-gray-200 rounded-xl py-2.5 px-4 outline-none focus:border-[#047857] transition"
                   placeholder="0"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold mb-2">Date</label>
+                <input
+                  type="date"
+                  required
+                  value={formData.date}
+                  onChange={(e) => setFormData({...formData, date: e.target.value})}
+                  className="w-full border border-gray-200 rounded-xl py-2.5 px-4 outline-none focus:border-[#047857] transition"
                 />
               </div>
 

@@ -38,11 +38,11 @@ export const getBusinessProfile = async (req, res) => {
 export const updateBusinessProfile = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { name, description } = req.body;
+        const { name, description, monthly_target } = req.body;
 
         const { data, error } = await supabase
             .from("businesses")
-            .update({ name, description })
+            .update({ name, description, monthly_target })
             .eq("user_id", userId)
             .select()
             .single();
